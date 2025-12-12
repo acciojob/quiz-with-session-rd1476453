@@ -1,6 +1,6 @@
 // your JS code here.
 
-// Questions (do not modify)
+// Questions given
 const questions = [
   {
     question: "What is the capital of France?",
@@ -29,31 +29,29 @@ const questions = [
   },
 ];
 
-// ------------ SESSION STORAGE LOGIC ------------
+// ---------------- SESSION STORAGE ----------------
 
-// Load saved progress OR create empty object
 let userAnswers = JSON.parse(sessionStorage.getItem("progress")) || {};
 
-// Save a selected answer
-function saveProgress(questionIndex, selectedOption) {
-  userAnswers[questionIndex] = selectedOption;
+function saveProgress(qIndex, choiceValue) {
+  userAnswers[qIndex] = choiceValue;
   sessionStorage.setItem("progress", JSON.stringify(userAnswers));
 }
 
-// ------------ RENDER QUESTIONS ------------
+// ---------------- RENDER QUESTIONS ----------------
 
 const questionsElement = document.getElementById("questions");
 
 function renderQuestions() {
-  questionsElement.innerHTML = ""; // Clear before rendering
+  questionsElement.innerHTML = "";
 
   for (let i = 0; i < questions.length; i++) {
     const q = questions[i];
     const wrapper = document.createElement("div");
 
-    const title = document.createElement("p");
-    title.textContent = q.question;
-    wrapper.appendChild(title);
+    const p = document.createElement("p");
+    p.textContent = q.question;
+    wrapper.appendChild(p);
 
     q.choices.forEach((choice) => {
       const radio = document.createElement("input");
@@ -61,13 +59,23 @@ function renderQuestions() {
       radio.name = `question-${i}`;
       radio.value = choice;
 
-      // Restore previous selection
+      // Restore selection + force attribute (Cypress requirement)
       if (userAnswers[i] === choice) {
         radio.checked = true;
+        radio.setAttribute("checked", "true");
       }
 
-      // Save selection to sessionStorage
-      radio.addEventListener("change", () => saveProgress(i, choice));
+      // When user selects something
+      radio.addEventListener("change", () => {
+        saveProgress(i, choice);
+
+        // Remove checked attribute from all siblings
+        const group = document.getElementsByName(`question-${i}`);
+        group.forEach((btn) => btn.removeAttribute("checked"));
+
+        // Add checked="true" for Cypress
+        radio.setAttribute("checked", "true");
+      });
 
       const label = document.createElement("label");
       label.textContent = choice;
@@ -83,28 +91,23 @@ function renderQuestions() {
 
 renderQuestions();
 
-// ------------ SUBMIT QUIZ ------------
+// ---------------- SUBMIT BUTTON ----------------
 
-const submitButton = document.getElementById("submit");
+const submitBtn = document.getElementById("submit");
 const scoreDiv = document.getElementById("score");
 
-submitButton.addEventListener("click", () => {
+submitBtn.addEventListener("click", () => {
   let score = 0;
 
   for (let i = 0; i < questions.length; i++) {
-    if (userAnswers[i] === questions[i].answer) {
-      score++;
-    }
+    if (userAnswers[i] === questions[i].answer) score++;
   }
 
-  // Save score in localStorage
   localStorage.setItem("score", score);
-
-  // Display score
   scoreDiv.textContent = `Your score is ${score} out of ${questions.length}.`;
 });
 
-// ------------ SHOW SCORE IF ALREADY SUBMITTED ------------
+// ---------------- RESTORE SCORE ----------------
 
 const savedScore = localStorage.getItem("score");
 if (savedScore !== null) {
